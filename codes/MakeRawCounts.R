@@ -7,6 +7,8 @@
 #
 #   * THIS CODE SHOULD BE RUN ON LINUX
 #
+#   * THIS IS MICE DATA, HENCE MM10 WILL BE USED AS REFERENCE
+#
 #   Instruction
 #               1. Source("MakeRawCounts.R")
 #               2. Run the function "makeRCnt" - specify the input directory (fastq.gz) and output directory
@@ -15,15 +17,15 @@
 #   Example
 #               > source("The_directory_of_MakeRawCounts.R/MakeRawCounts.R")
 #               > makeRCnt(fastqgzPath="./data/lane_combined/",
-#                          referencePath="E:/Reference/hg38.fa",
-#                          referenceIdxPath="E:/Reference/hg38.index",
+#                          referencePath="E:/Reference/mm10.fa",
+#                          referenceIdxPath="E:/Reference/mm10.index",
 #                          readType=c("single-end", "paired-end"),
 #                          outputDir="./data/")
 ###
 
 makeRCnt <- function(fastqgzPath="/mnt/c/Research/CUMC/Kang_RNASeq_Analysis/data/lane_combined/",
-                     referencePath="/mnt/e/Reference/hg38.fa",
-                     referenceIdxPath="/mnt/e/Reference/hg38.index",
+                     referencePath="/mnt/e/Reference/mm10.fa",
+                     referenceIdxPath="/mnt/e/Reference/mm10.index",
                      readType=c("single-end", "paired-end"),
                      outputDir="/mnt/c/Research/CUMC/Kang_RNASeq_Analysis/data/") {
   
@@ -34,11 +36,11 @@ makeRCnt <- function(fastqgzPath="/mnt/c/Research/CUMC/Kang_RNASeq_Analysis/data
     BiocManager::install("Rsubread", version = "3.8")
     require(Rsubread, quietly = TRUE)
   }
-  if(!require(org.Hs.eg.db, quietly = TRUE)) {
+  if(!require(org.Mm.eg.db, quietly = TRUE)) {
     if(!requireNamespace("BiocManager", quietly = TRUE))
       install.packages("BiocManager")
-    BiocManager::install("org.Hs.eg.db", version = "3.8")
-    require(org.Hs.eg.db, quietly = TRUE)
+    BiocManager::install("org.Mm.eg.db", version = "3.8")
+    require(org.Mm.eg.db, quietly = TRUE)
   }
   
   ### build the index of the reference genome
@@ -91,7 +93,7 @@ makeRCnt <- function(fastqgzPath="/mnt/c/Research/CUMC/Kang_RNASeq_Analysis/data
   rawCnt <- NULL
   for(i in 1:length(bamFiles)) {
     counts <- featureCounts(files = paste0(fastqgzPath, "../bam_files/", bamFiles[i]),
-                            annot.inbuilt = "hg38",
+                            annot.inbuilt = "mm10",
                             isPairedEnd = TRUE)
     
     if(is.null(rawCnt)) {
@@ -107,8 +109,8 @@ makeRCnt <- function(fastqgzPath="/mnt/c/Research/CUMC/Kang_RNASeq_Analysis/data
   
   ### set column names for rawCnt and annotate gene symbols
   colnames(rawCnt) <- substr(bamFiles, 1, nchar(bamFiles)-4)
-  map_eg_symbol <- mappedkeys(org.Hs.egSYMBOL)
-  list_eg2symbol <- as.list(org.Hs.egSYMBOL[map_eg_symbol])
+  map_eg_symbol <- mappedkeys(org.Mm.egSYMBOL)
+  list_eg2symbol <- as.list(org.Mm.egSYMBOL[map_eg_symbol])
   rawCnt <- cbind(Entrez_ID=rownames(rawCnt),
                   Gene_Symbol=as.character(list_eg2symbol[rownames(rawCnt)]),
                   rawCnt)
