@@ -114,6 +114,32 @@ performPA <- function(dePath="./results/differential_expression/DE_Result.xlsx",
         } else {
           kegg_enrich@result <- kegg_enrich@result[which(kegg_enrich@result$p.adjust < pv_threshold),]
           
+          if(org == "human") {
+            if(!require(org.Hs.eg.db, quietly = TRUE)) {
+              if(!requireNamespace("BiocManager", quietly = TRUE))
+                install.packages("BiocManager")
+              BiocManager::install("org.Hs.eg.db", version = "3.8")
+              require(org.Hs.eg.db, quietly = TRUE)
+            }
+            map_eg_symbol <- mappedkeys(org.Hs.egSYMBOL)
+            list_eg2symbol <- as.list(org.Hs.egSYMBOL[map_eg_symbol])
+          } else if(org == "mouse") {
+            if(!require(org.Mm.eg.db, quietly = TRUE)) {
+              if(!requireNamespace("BiocManager", quietly = TRUE))
+                install.packages("BiocManager")
+              BiocManager::install("org.Mm.eg.db", version = "3.8")
+              require(org.Mm.eg.db, quietly = TRUE)
+            }
+            map_eg_symbol <- mappedkeys(org.Mm.egSYMBOL)
+            list_eg2symbol <- as.list(org.Mm.egSYMBOL[map_eg_symbol])
+          } else {
+            stop("ERROR: org should be either \"human\" or \"mouse\".")  
+          }
+          kegg_enrich@result$geneID <- sapply(kegg_enrich@result$geneID, function(x) {
+            g <- strsplit(x, "/", TRUE)[[1]]
+            return(paste(as.character(list_eg2symbol[g]), collapse = "/"))
+          })
+          
           if(imgPrint == TRUE) {
             if((displayNum == Inf) || (nrow(kegg_enrich@result) <= displayNum)) {
               result <- kegg_enrich@result
@@ -130,7 +156,7 @@ performPA <- function(dePath="./results/differential_expression/DE_Result.xlsx",
                 guides(fill = guide_colorbar(ticks=FALSE, title="P.Val", barheight=10)) +
                 ggtitle(paste0("KEGG ", title))
               
-              png(paste0(dir, "kegg_", title, "_CB.png"), width = 2000, height = 1000)
+              png(paste0(dir, "kegg_", title, ".png"), width = 2000, height = 1000)
               print(p[[1]])
               dev.off()
             } else {
@@ -173,7 +199,7 @@ performPA <- function(dePath="./results/differential_expression/DE_Result.xlsx",
                 guides(fill = guide_colorbar(ticks=FALSE, title="P.Val", barheight=10)) +
                 ggtitle(paste0("GO ", title))
               
-              png(paste0(dir, "go_", title, "_CB.png"), width = 2000, height = 1000)
+              png(paste0(dir, "go_", title, ".png"), width = 2000, height = 1000)
               print(p[[2]])
               dev.off()
             } else {
