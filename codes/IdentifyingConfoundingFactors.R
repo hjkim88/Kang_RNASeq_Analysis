@@ -22,6 +22,10 @@ identifyCF <- function(rawCntPath="./data/raw_counts.rda",
   ### load dataset
   load(rawCntPath)
   
+  ### remove duplicated gene symbols
+  rawCnt <- rawCnt[!duplicated(rawCnt$Gene_Symbol),]
+  rownames(rawCnt) <- rawCnt$Gene_Symbol
+  
   ### make sample info
   sampleInfo <- c(rep("ER_High", 3), rep("ER_Low", 3))
   
@@ -66,9 +70,21 @@ identifyCF <- function(rawCntPath="./data/raw_counts.rda",
                        title="PCA_Plot", outDir="./") {
     
     ### load library
-    if(!require(ggfortify)) {
+    if(!require(ggfortify, quietly = TRUE)) {
       install.packages("ggfortify")
-      library(ggfortify)
+      library(ggfortify, quietly = TRUE)
+    }
+    if(!require(FactoMineR, quietly = TRUE)) {
+      install.packages("FactoMineR")
+      library(FactoMineR, quietly = TRUE)
+    }
+    if(!require(factoextra, quietly = TRUE)) {
+      install.packages("factoextra")
+      library(factoextra, quietly = TRUE)
+    }
+    if(!require(xlsx, quietly = TRUE)) {
+      install.packages("xlsx")
+      require(xlsx, quietly = TRUE)
     }
     
     ### select the top genes based on variance
@@ -81,8 +97,10 @@ identifyCF <- function(rawCntPath="./data/raw_counts.rda",
     }
     
     ### PCA
-    pca_result <- prcomp(t(normalizedMat[top_genes,]))
-    pca_group <- data.frame(pca_result$x, group=grp)
+    pca_result <- PCA(t(normalizedMat[top_genes,]), graph = FALSE)
+    colnames(pca_result$ind$coord) <- paste0("PC", 1:ncol(pca_result$ind$coord))
+    colnames(pca_result$var$contrib) <- paste0("PC", 1:ncol(pca_result$var$contrib))
+    pca_group <- data.frame(pca_result$ind$coord, group=grp)
     
     colors = topo.colors(length(unique(grp)))
     names(colors) = unique(grp)
@@ -94,17 +112,34 @@ identifyCF <- function(rawCntPath="./data/raw_counts.rda",
         geom_text(aes(label=colnames(normalizedMat)),hjust="inward", vjust="inward") +
         scale_color_manual(values = colors) +
         theme_classic(base_size = 16)
-      ggsave(filename = paste0(outDir, title, "_PC1-2_", ".png"), width = 10, height = 8)
+      ggsave(filename = paste0(outDir, title, "_PC1-2", ".png"), width = 10, height = 8)
+
+      fviz_contrib(pca_result, choice = "var", axes = 1, top = 30)
+      ggsave(filename = paste0(outDir, title, "_PC1_contribution.png"), width = 12, height = 8)
+      
+      fviz_contrib(pca_result, choice = "var", axes = 2, top = 30)
+      ggsave(filename = paste0(outDir, title, "_PC2_contribution.png"), width = 12, height = 8)
     } else if(component[1] == "PC2&PC3") {
       ggplot(pca_group,aes(x=PC2,y=PC3,col=group)) +
         labs(title=paste0(title, "_PC2-3")) +
         geom_text(aes(label=colnames(normalizedMat)),hjust="inward", vjust="inward") +
         scale_color_manual(values = colors) +
         theme_classic(base_size = 16)
-      ggsave(filename = paste0(outDir, title, "_PC2-3_", ".png"), width = 10, height = 8)
+      ggsave(filename = paste0(outDir, title, "_PC2-3", ".png"), width = 10, height = 8)
+      
+      fviz_contrib(pca_result, choice = "var", axes = 2, top = 30)
+      ggsave(filename = paste0(outDir, title, "_PC2_contribution.png"), width = 12, height = 8)
+      
+      fviz_contrib(pca_result, choice = "var", axes = 3, top = 30)
+      ggsave(filename = paste0(outDir, title, "_PC3_contribution.png"), width = 12, height = 8)
     } else {
       stop("\"component\" parameter should be \"PC1&PC2\" or \"PC2&PC3\"")
     }
+    
+    write.xlsx2(data.frame(Gene_Symbol=rownames(pca_result$var$contrib), pca_result$var$contrib,
+                           stringsAsFactors = FALSE, check.names = FALSE),
+                file = paste0(outDir, title, "_PC_contribution.xlsx"),
+                sheetName = "PCA_contribution", row.names = FALSE)
     
   }
   
