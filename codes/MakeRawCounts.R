@@ -78,7 +78,7 @@ makeRCnt <- function(fastqgzPath="/mnt/c/Research/CUMC/Kang_RNASeq_Analysis/data
       align(index=referenceIdxPath,
             readfile1 = paste0(fastqgzPath, fastqFiles[i]),
             readfile2 = NULL,
-            output_file = paste0(fastqgzPath, strsplit(fastqFiles[i], "_", fixed = TRUE)[[1]][1], ".bam"),
+            output_file = paste0(fastqgzPath, "../bam_files/", strsplit(fastqFiles[i], "_", fixed = TRUE)[[1]][1], ".bam"),
             nthreads = 4)
     }
   } else {
